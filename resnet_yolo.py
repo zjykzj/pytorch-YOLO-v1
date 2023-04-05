@@ -1,12 +1,12 @@
-import torch.nn as nn
 import math
+
+import torch
+import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
 
-
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
-
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -93,6 +93,7 @@ class Bottleneck(nn.Module):
 
         return out
 
+
 class detnet_bottleneck(nn.Module):
     # no expansion
     # dilation = 2
@@ -103,16 +104,16 @@ class detnet_bottleneck(nn.Module):
         super(detnet_bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=2, bias=False,dilation=2)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=2, bias=False, dilation=2)
         self.bn2 = nn.BatchNorm2d(planes)
-        self.conv3 = nn.Conv2d(planes, self.expansion*planes, kernel_size=1, bias=False)
-        self.bn3 = nn.BatchNorm2d(self.expansion*planes)
+        self.conv3 = nn.Conv2d(planes, self.expansion * planes, kernel_size=1, bias=False)
+        self.bn3 = nn.BatchNorm2d(self.expansion * planes)
 
         self.downsample = nn.Sequential()
-        if stride != 1 or in_planes != self.expansion*planes or block_type=='B':
+        if stride != 1 or in_planes != self.expansion * planes or block_type == 'B':
             self.downsample = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(self.expansion*planes)
+                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(self.expansion * planes)
             )
 
     def forward(self, x):
@@ -122,6 +123,7 @@ class detnet_bottleneck(nn.Module):
         out += self.downsample(x)
         out = F.relu(out)
         return out
+
 
 class ResNet(nn.Module):
 
@@ -167,8 +169,8 @@ class ResNet(nn.Module):
             layers.append(block(self.inplanes, planes))
 
         return nn.Sequential(*layers)
-    
-    def _make_detnet_layer(self,in_channels):
+
+    def _make_detnet_layer(self, in_channels):
         layers = []
         layers.append(detnet_bottleneck(in_planes=in_channels, planes=256, block_type='B'))
         layers.append(detnet_bottleneck(in_planes=256, planes=256, block_type='A'))
@@ -191,9 +193,10 @@ class ResNet(nn.Module):
         # x = self.fc(x)
         x = self.conv_end(x)
         x = self.bn_end(x)
-        x = F.sigmoid(x) #归一化到0-1
+        # x = F.sigmoid(x)  # 归一化到0-1
+        x = torch.sigmoid(x)  # 归一化到0-1
         # x = x.view(-1,7,7,30)
-        x = x.permute(0,2,3,1) #(-1,7,7,30)
+        x = x.permute(0, 2, 3, 1)  # (-1,7,7,30)
 
         return x
 
@@ -256,3 +259,14 @@ def resnet152(pretrained=False, **kwargs):
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet152']))
     return model
+
+
+if __name__ == '__main__':
+    model = resnet50()
+    print(model)
+
+    import torch
+
+    data = torch.randn(1, 3, 448, 448)
+    outputs = model(data)
+    print(outputs.shape)
