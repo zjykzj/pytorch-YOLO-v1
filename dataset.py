@@ -114,15 +114,19 @@ class yoloDataset(data.Dataset):
         grid_num = 14
         target = torch.zeros((grid_num, grid_num, 30))
         cell_size = 1. / grid_num
+        # w=x2-x1, y=y2-y1
         wh = boxes[:, 2:] - boxes[:, :2]
+        # x_center=(x1+x2)/2, y_center=(y1+y2)/2
         cxcy = (boxes[:, 2:] + boxes[:, :2]) / 2
         for i in range(cxcy.size()[0]):
             cxcy_sample = cxcy[i]
+            # 标注框中心点所在网格下标
             ij = (cxcy_sample / cell_size).ceil() - 1  #
             target[int(ij[1]), int(ij[0]), 4] = 1
             target[int(ij[1]), int(ij[0]), 9] = 1
             target[int(ij[1]), int(ij[0]), int(labels[i]) + 9] = 1
             xy = ij * cell_size  # 匹配到的网格的左上角相对坐标
+            # 计算标注框中心点与所在网络偏移的比例
             delta_xy = (cxcy_sample - xy) / cell_size
             target[int(ij[1]), int(ij[0]), 2:4] = wh[i]
             target[int(ij[1]), int(ij[0]), :2] = delta_xy
